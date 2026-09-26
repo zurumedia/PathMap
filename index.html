@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PathMap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1E2A22; --ink-soft: #55604F; --paper: #F5F1E4; --paper-raised: #FBF9F0;
+    --gold: #B87F26; --gold-soft: #EBDFC0; --moss: #3F6C57; --line: #DED4B8;
+    --serif: 'Fraunces', Georgia, serif; --sans: 'Inter', -apple-system, sans-serif;
+    box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --ink: #EDE9DB; --ink-soft: #AEA995; --paper: #14181A; --paper-raised: #1C2220; --gold: #D9A24B; --gold-soft: #33291A; --moss: #7FAE97; --line: #2A322D; }
+  }
+  :root[data-theme="dark"] { --ink: #EDE9DB; --ink-soft: #AEA995; --paper: #14181A; --paper-raised: #1C2220; --gold: #D9A24B; --gold-soft: #33291A; --moss: #7FAE97; --line: #2A322D; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  .app { min-height: 100%; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--line); }
+  .wordmark { font-family: var(--serif); font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; display:flex; align-items:center; gap:8px; }
+  .wordmark svg { width: 18px; height: 18px; }
+  .nav-link { background: none; border: none; font-family: var(--sans); font-size: 0.85rem; color: var(--ink-soft); cursor: pointer; padding: 6px 10px; }
+  .nav-link:hover { color: var(--ink); }
+  main { flex: 1; display: flex; flex-direction: column; }
+  .progress-track { height: 3px; background: var(--line); }
+  .progress-fill { height: 100%; background: var(--gold); transition: width 0.4s ease; }
+  .screen { flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 560px; width: 100%; margin: 0 auto; padding: 40px 24px 64px; }
+  .step-label { font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 14px; }
+  .question { font-family: var(--serif); font-weight: 500; font-size: 1.65rem; line-height: 1.25; margin: 0 0 10px; max-width: 26ch; }
+  .sub { color: var(--ink-soft); font-size: 0.95rem; line-height: 1.5; margin: 0 0 24px; max-width: 46ch; }
+  textarea, input[type="text"] { width: 100%; font-family: var(--sans); font-size: 1.05rem; color: var(--ink); background: var(--paper-raised); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; resize: vertical; min-height: 96px; line-height: 1.5; }
+  textarea:focus, input:focus, button:focus-visible { outline: 2px solid var(--moss); outline-offset: 2px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 0; }
+  .chip { font-family: var(--sans); font-size: 0.9rem; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper-raised); color: var(--ink-soft); cursor: pointer; text-align: left; }
+  .chip:hover { border-color: var(--gold); color: var(--ink); }
+  .chip.selected { border-color: var(--moss); color: var(--ink); background: var(--gold-soft); font-weight: 500; }
+  .chip-grid { display: flex; flex-direction: column; gap: 10px; }
+  .hint { font-size: 0.78rem; color: var(--ink-soft); margin-top: 12px; }
+  .actions { display: flex; gap: 10px; margin-top: 26px; align-items: center; }
+  .btn-primary { font-family: var(--sans); font-weight: 600; font-size: 0.95rem; color: var(--paper); background: var(--ink); border: none; border-radius: 10px; padding: 13px 24px; cursor: pointer; }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-text { font-family: var(--sans); font-size: 0.9rem; color: var(--ink-soft); background: none; border: none; cursor: pointer; padding: 13px 6px; }
+  .btn-text:hover { color: var(--ink); }
+  .hero { flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 620px; width: 100%; margin: 0 auto; padding: 28px 24px 56px; }
+  .hero-map { width: 100%; height: 150px; margin-bottom: 22px; }
+  .hero-route { fill: none; stroke: var(--gold); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 520; stroke-dashoffset: 520; animation: draw 1.6s ease forwards 0.2s; }
+  .hero-dot { fill: var(--moss); opacity: 0; animation: pop 0.4s ease forwards; }
+  .hero-dot.d1 { animation-delay: 0.3s; } .hero-dot.d2 { animation-delay: 0.9s; } .hero-dot.d3 { animation-delay: 1.6s; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes pop { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .hero-route { animation: none; stroke-dashoffset: 0; } .hero-dot { animation: none; opacity: 1; } }
+  .hero-eyebrow { font-size: 0.85rem; color: var(--moss); margin-bottom: 10px; }
+  .hero h1 { font-family: var(--serif); font-weight: 500; font-size: 2.15rem; line-height: 1.18; margin: 0 0 14px; max-width: 15ch; }
+  .hero p { color: var(--ink-soft); font-size: 1rem; line-height: 1.55; max-width: 42ch; margin: 0 0 28px; }
+  .result-wrap { max-width: 620px; margin: 0 auto; width: 100%; padding: 40px 24px 80px; }
+  .bp-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 16px; padding: 30px 28px; margin-bottom: 16px; }
+  .bp-rank { font-size: 0.8rem; color: var(--gold); margin-bottom: 6px; }
+  .bp-title { font-family: var(--serif); font-weight: 500; font-size: 1.4rem; line-height: 1.3; margin: 0 0 10px; }
+  .bp-text { font-size: 0.98rem; line-height: 1.55; color: var(--ink-soft); }
+  .bp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .bp-tag { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; background: var(--gold-soft); color: var(--ink); }
+  .bp-action { margin-top: 10px; padding: 16px 18px; background: var(--gold-soft); border-radius: 10px; border-left: 3px solid var(--gold); }
+  .result-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+  .lib-empty { color: var(--ink-soft); font-size: 0.95rem; text-align: center; padding: 60px 24px; }
+  .lib-item { border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; background: var(--paper-raised); }
+  .lib-item-title { font-family: var(--serif); font-size: 1.05rem; margin: 0 0 4px; }
+  .lib-item-action { font-size: 0.85rem; color: var(--ink-soft); }
+  .lib-item-date { font-size: 0.75rem; color: var(--ink-soft); margin-top: 8px; }
+  @media (max-width: 420px) { .question { font-size: 1.4rem; } .hero h1 { font-size: 1.7rem; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="wordmark"><svg viewBox="0 0 24 24"><path d="M3 18 C 8 8, 16 20, 21 6" fill="none" stroke="var(--gold)" stroke-width="2.3" stroke-linecap="round"/></svg>PathMap</div>
+    <button class="nav-link" id="libBtn" type="button">My PathMaps</button>
+  </header>
+  <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <main id="main"></main>
+</div>
+
+<script>
+(function(){
+  // Course knowledge base: each course tagged with the traits it draws on.
+  const courses = [
+    { name: "Computer Science", tags: ["tech","analytical","independent"], blurb: "Builds software, systems and problem-solving skill — a fit for logical, self-directed minds drawn to technology." },
+    { name: "Software Engineering", tags: ["tech","analytical","handson"], blurb: "Hands-on building of applications and systems, for people who like making things that work." },
+    { name: "Medicine & Surgery", tags: ["health","caring","science"], blurb: "Long, rigorous, and built around directly treating and caring for people." },
+    { name: "Nursing", tags: ["health","caring","communication"], blurb: "Patient-facing healthcare work that blends technical skill with people care." },
+    { name: "Law", tags: ["law","communication","analytical"], blurb: "Argument, precedent and persuasion — for sharp, articulate minds who like debate." },
+    { name: "Mass Communication", tags: ["communication","creative","social"], blurb: "Storytelling, media and public communication across platforms." },
+    { name: "Business Administration", tags: ["business","leadership","structured"], blurb: "Broad grounding in running and organizing enterprises." },
+    { name: "Accounting", tags: ["business","structured","analytical"], blurb: "Precise, structured work with numbers and financial systems." },
+    { name: "Economics", tags: ["business","analytical","social"], blurb: "Studies how people, markets and policy interact — analytical but people-aware." },
+    { name: "Civil Engineering", tags: ["engineering","analytical","handson"], blurb: "Designing and building physical infrastructure — for practical, technical minds." },
+    { name: "Electrical/Electronic Engineering", tags: ["engineering","tech","analytical"], blurb: "Systems, circuits and technology at the hardware level." },
+    { name: "Architecture", tags: ["creative","engineering","analytical"], blurb: "Where design creativity meets technical structure." },
+    { name: "Psychology", tags: ["social","caring","analytical"], blurb: "Understanding people and behaviour — analytical and people-centered." },
+    { name: "Microbiology / Biochemistry", tags: ["science","analytical","health"], blurb: "Lab-based science for the methodical and curious." },
+    { name: "Estate Management", tags: ["business","structured","social"], blurb: "Property, land and structured client-facing business." },
+    { name: "Political Science", tags: ["social","communication","law"], blurb: "Power, governance and public affairs, for the argumentative and socially aware." },
+    { name: "International Relations", tags: ["social","communication","leadership"], blurb: "Global affairs and diplomacy, for outward-facing, articulate minds." },
+    { name: "Fine & Applied Arts", tags: ["creative","arts"], blurb: "Visual creativity as a discipline in its own right." },
+    { name: "Theatre Arts / Film", tags: ["creative","communication","arts"], blurb: "Performance and storytelling on stage or screen." },
+    { name: "Marketing", tags: ["business","communication","creative"], blurb: "Persuasion and creativity applied to business growth." }
+  ];
+
+  const quiz = [
+    { key:'subjects', label:'Step 1 of 10', q:"Which subjects have you actually enjoyed?", sub:"Pick as many as genuinely apply — not what sounds impressive.", multi:true,
+      opts:[["Maths & the sciences",["science","analytical"]],["Literature & languages",["arts","communication"]],["Government, economics or commerce",["business","social"]],["Biology & health sciences",["health","caring"]],["Art, design or music",["creative","arts"]]] },
+    { key:'strengths', label:'Step 2 of 10', q:"What are you naturally good at?", sub:"Not what you've been told to be good at — what actually comes easily.", multi:true,
+      opts:[["Solving logical problems",["analytical","tech"]],["Talking and convincing people",["communication","leadership"]],["Making or fixing things with your hands",["handson","engineering"]],["Organizing and planning",["structured","business"]],["Creating things — writing, drawing, design",["creative","arts"]]] },
+    { key:'environment', label:'Step 3 of 10', q:"Which environment appeals to you most?", sub:"Picture yourself actually working there day to day.", multi:false,
+      opts:[["A structured office or corporate setting",["business","structured"]],["A lab, hospital or technical site",["science","health"]],["Out meeting people, on the field",["social","communication"]],["A studio or creative space",["creative"]],["Independent or remote, on your own systems",["independent","tech"]]] },
+    { key:'values', label:'Step 4 of 10', q:"What matters most to you in a career?", sub:"If you had to pick just one.", multi:false,
+      opts:[["Strong income potential",["business"]],["Making a direct impact on people's lives",["caring","health"]],["Stability and job security",["structured","law"]],["Creative freedom",["creative"]],["Being recognized as an expert",["analytical","science"]]] },
+    { key:'activity', label:'Step 5 of 10', q:"Which of these sounds most enjoyable to actually do?", sub:"Pick as many as genuinely appeal.", multi:true,
+      opts:[["Debating an issue or arguing a case",["law","communication"]],["Building an app or website",["tech","analytical"]],["Diagnosing a problem and fixing it",["health","analytical"]],["Managing a team or project",["leadership","business"]],["Designing something visual",["creative","arts"]]] },
+    { key:'spark', type:'textarea', label:'Step 6 of 10', q:"What's on your mind about your path right now?", sub:"A course you're weighing, a career that keeps coming up — anything.", placeholder:"Type freely..." },
+    { key:'why', type:'textarea', label:'Step 7 of 10', q:"Why does this one stick with you?", sub:"Be honest — genuine interest, or what others expect of you?", placeholder:"Because..." },
+    { key:'who', type:'yesno', label:'Step 8 of 10', q:"Have you spoken to anyone actually doing this — a student, graduate or lecturer?", sub:"A quick reality check before you commit further.", placeholder:"Who, and what did they tell you? (optional)" },
+    { key:'success', type:'textarea', label:'Step 9 of 10', q:"A few years in, if this was the right call, what would that look like?", sub:"Be specific — the day-to-day, not the title.", placeholder:"I'd be..." },
+    { key:'action', type:'textarea', label:'Step 10 of 10', q:"What's one real step you could take this week?", sub:"A conversation, a shadowing request, a course outline to read.", placeholder:"This week I will..." }
+  ];
+
+  const main = document.getElementById('main');
+  const progressFill = document.getElementById('progressFill');
+  let idx = -1;
+  const answers = {};
+  const traits = {};
+
+  function setProgress(p){ progressFill.style.width = Math.min(100, Math.max(0,p)) + '%'; }
+  function addTraits(tagArr){ tagArr.forEach(t => { traits[t] = (traits[t]||0) + 1; }); }
+  function removeTraits(tagArr){ tagArr.forEach(t => { traits[t] = Math.max(0,(traits[t]||0) - 1); }); }
+
+  function renderIntro(){
+    setProgress(0);
+    main.innerHTML = `
+      <div class="hero">
+        <svg class="hero-map" viewBox="0 0 400 140" preserveAspectRatio="none">
+          <path class="hero-route" d="M20 110 C 90 30, 160 130, 230 60 S 340 20, 380 40"/>
+          <circle class="hero-dot d1" cx="20" cy="110" r="5"/><circle class="hero-dot d2" cx="230" cy="60" r="5"/><circle class="hero-dot d3" cx="380" cy="40" r="5"/>
+        </svg>
+        <div class="hero-eyebrow">A guided flow · 6–9 minutes</div>
+        <h1>Find the courses that actually fit you.</h1>
+        <p>Ten short questions on what you enjoy, what you're good at, and what you want out of a career. No login. You'll leave with course suggestions and one clear next step.</p>
+        <div class="actions"><button class="btn-primary" id="startBtn" type="button">Start</button></div>
+      </div>`;
+    document.getElementById('startBtn').onclick = () => { idx = 0; renderStep(); };
+  }
+
+  function renderStep(){
+    const s = quiz[idx];
+    setProgress((idx / quiz.length) * 100 + 5);
+    let bodyHtml = '';
+    if (s.opts) {
+      const sel = answers[s.key + '_sel'] || [];
+      bodyHtml = `<div class="chip-grid">` + s.opts.map(([label,tags],i) => {
+        const isSel = sel.includes(i);
+        return `<button class="chip ${isSel?'selected':''}" type="button" data-opt="${i}">${label}</button>`;
+      }).join('') + `</div><div class="hint">${s.multi ? 'Pick as many as apply.' : 'Pick one.'}</div>`;
+    } else if (s.type === 'yesno') {
+      const yn = answers[s.key + '_yn'];
+      const existing = answers[s.key] || '';
+      bodyHtml = `<div class="chips" style="margin-bottom:14px;">
+          <button class="chip ${yn==='yes'?'selected':''}" data-yn="yes" type="button">Yes</button>
+          <button class="chip ${yn==='no'?'selected':''}" data-yn="no" type="button">Not yet</button>
+        </div><textarea id="answerInput" placeholder="${s.placeholder}">${existing}</textarea>`;
+    } else {
+      const existing = answers[s.key] || '';
+      bodyHtml = `<textarea id="answerInput" placeholder="${s.placeholder}">${existing}</textarea>`;
+    }
+
+    main.innerHTML = `
+      <div class="screen">
+        <div class="step-label">${s.label}</div>
+        <h1 class="question">${s.q}</h1>
+        <p class="sub">${s.sub}</p>
+        ${bodyHtml}
+        <div class="actions">
+          <button class="btn-primary" id="nextBtn" type="button">Continue</button>
+          ${idx > 0 ? '<button class="btn-text" id="backBtn" type="button">Back</button>' : ''}
+        </div>
+      </div>`;
+
+    if (s.opts) {
+      main.querySelectorAll('[data-opt]').forEach(btn => {
+        btn.onclick = () => {
+          const i = parseInt(btn.getAttribute('data-opt'),10);
+          const sel = answers[s.key + '_sel'] || (answers[s.key + '_sel'] = []);
+          const already = sel.includes(i);
+          if (s.multi) {
+            if (already) { sel.splice(sel.indexOf(i),1); removeTraits(s.opts[i][1]); }
+            else { sel.push(i); addTraits(s.opts[i][1]); }
+          } else {
+            sel.forEach(j => removeTraits(s.opts[j][1]));
+            sel.length = 0; sel.push(i); addTraits(s.opts[i][1]);
+          }
+          renderStep();
+        };
+      });
+    } else {
+      const input = document.getElementById('answerInput');
+      input.focus();
+      if (s.type === 'yesno') {
+        main.querySelectorAll('[data-yn]').forEach(btn => {
+          btn.onclick = () => { answers[s.key + '_yn'] = btn.getAttribute('data-yn'); renderStep(); };
+        });
+      }
+    }
+
+    document.getElementById('nextBtn').onclick = () => {
+      if (!s.opts) answers[s.key] = document.getElementById('answerInput').value.trim();
+      if (idx < quiz.length - 1) { idx++; renderStep(); }
+      else { idx = quiz.length; renderResult(); }
+    };
+    if (idx > 0) document.getElementById('backBtn').onclick = () => {
+      if (!s.opts) answers[s.key] = document.getElementById('answerInput').value.trim();
+      idx--; renderStep();
+    };
+  }
+
+  function truncate(str, n){ return str.length > n ? str.slice(0, n - 1) + '…' : str; }
+
+  function topCourses(n){
+    return courses.map(c => {
+      const score = c.tags.reduce((sum,t) => sum + (traits[t]||0), 0);
+      const matched = c.tags.filter(t => (traits[t]||0) > 0);
+      return { ...c, score, matched };
+    }).sort((a,b) => b.score - a.score).slice(0,n);
+  }
+
+  function renderResult(){
+    setProgress(100);
+    const picks = topCourses(3).filter(c => c.score > 0);
+    const title = truncate(answers.spark || 'Your PathMap', 68);
+    const who = answers.who_yn === 'yes' ? "Already spoken to someone in the field — " + (answers.who || 'see notes above.') :
+                answers.who_yn === 'no' ? "Not yet — worth a real conversation with someone in it before going further." :
+                (answers.who || 'Not specified.');
+    const pm = { id: Date.now().toString(36), title, picks: picks.map(p=>p.name), why: answers.why, who, success: answers.success, action: answers.action, createdAt: new Date().toISOString() };
+
+    const coursesHtml = picks.length ? picks.map((c,i) => `
+      <div class="bp-card">
+        <div class="bp-rank">Suggested course ${i+1}</div>
+        <h2 class="bp-title">${c.name}</h2>
+        <div class="bp-text">${c.blurb}</div>
+        <div class="bp-tags">${c.matched.map(t=>`<span class="bp-tag">${t}</span>`).join('')}</div>
+      </div>`).join('') : `<div class="bp-card"><div class="bp-text">Not enough signal yet from your picks — try retaking the first few questions with more selections.</div></div>`;
+
+    main.innerHTML = `
+      <div class="result-wrap">
+        <div class="step-label" style="margin-bottom:16px;">Your PathMap</div>
+        ${coursesHtml}
+        <div class="bp-card">
+          <div class="bp-rank">Reality check</div>
+          <div class="bp-text">${who}</div>
+        </div>
+        <div class="bp-card">
+          <div class="bp-rank">This week's step</div>
+          <div class="bp-action"><div class="bp-text" style="color:var(--ink);font-weight:600;">${answers.action || '—'}</div></div>
+        </div>
+        <div class="result-actions">
+          <button class="btn-primary" id="saveBtn" type="button">Save this PathMap</button>
+          <button class="btn-text" id="restartBtn" type="button">Start another</button>
+        </div>
+      </div>`;
+
+    document.getElementById('saveBtn').onclick = () => {
+      const ok = saveMap(pm);
+      const btn = document.getElementById('saveBtn');
+      btn.textContent = ok ? 'Saved ✓' : 'Could not save';
+      btn.disabled = true;
+    };
+    document.getElementById('restartBtn').onclick = () => {
+      Object.keys(answers).forEach(k => delete answers[k]);
+      Object.keys(traits).forEach(k => delete traits[k]);
+      idx = -1; renderIntro();
+    };
+  }
+
+  function saveMap(pm){
+    try {
+      const list = loadMaps();
+      list.unshift(pm);
+      localStorage.setItem('pathmap_saved', JSON.stringify(list.slice(0,50)));
+      return true;
+    } catch(e){ return false; }
+  }
+  function loadMaps(){
+    try { return JSON.parse(localStorage.getItem('pathmap_saved') || '[]'); }
+    catch(e){ return []; }
+  }
+
+  function renderLibrary(){
+    setProgress(100);
+    const list = loadMaps();
+    let itemsHtml = '';
+    if (list.length === 0) {
+      itemsHtml = `<div class="lib-empty">No PathMaps saved yet on this device.<br>Finish the flow and save one to see it here.</div>`;
+    } else {
+      itemsHtml = list.map(pm => {
+        const d = new Date(pm.createdAt);
+        return `<div class="lib-item">
+          <div class="lib-item-title">${pm.title}</div>
+          <div class="lib-item-action">${(pm.picks||[]).join(' · ')}</div>
+          <div class="lib-item-date">${d.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}</div>
+        </div>`;
+      }).join('');
+    }
+    main.innerHTML = `
+      <div class="result-wrap">
+        <div class="step-label" style="margin-bottom:16px;">My PathMaps</div>
+        ${itemsHtml}
+        <div class="result-actions"><button class="btn-primary" id="newBtn" type="button">Start a new PathMap</button></div>
+      </div>`;
+    document.getElementById('newBtn').onclick = () => { idx = -1; renderIntro(); };
+  }
+
+  document.getElementById('libBtn').onclick = () => { renderLibrary(); };
+  renderIntro();
+})();
+</script>
+</body>
+</html>
