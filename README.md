@@ -1,2 +1,0 @@
-# PathMap
-Your Educational Guide 
